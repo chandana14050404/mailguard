@@ -1,0 +1,15 @@
+{
+  "gmail_address": "lazygirl250114@gmail.com",
+  "gmail_password": "ytxw xlow qbbq ryea",
+  "twilio_sid": "ACb651815be01b023cfcac64c35c9fb11e",
+  "twilio_token": "cbc9059797b24cefbe3873415994c4c9",
+  "twilio_from": "+14155238886",
+  "recipients": [
+    "+919652782574"
+  ],
+  "rules": [],
+  "check_interval": 300,
+  "only_unread": true,
+  "mark_read": false,
+  "wa_template": "\ud83d\udd14 *MailGuard Alert*\n\n\ud83d\udce7 *From:* {from}\n\ud83d\udccc *Subject:* {subject}\n\ud83c\udff7\ufe0f *Label:* {label}\n\u23f0 *Time:* {time}\n\n\ud83d\udccb {preview}\n\n_MailGuard Automation_"
+}

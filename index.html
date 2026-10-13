@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MailGuard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0f1117; --card: #1a1d27; --card2: #222536; --border: #2e3250;
+  --accent: #5b6af0; --green: #22c55e; --red: #ef4444; --yellow: #f59e0b;
+  --wa: #25d366; --text: #e2e8f0; --muted: #6b7280; --mono: 'JetBrains Mono',monospace;
+  --radius: 10px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; font-size:14px; min-height:100vh; display:flex; }
+
+/* ── SIDEBAR ── */
+.sidebar { width:220px; background:var(--card); border-right:1px solid var(--border); display:flex; flex-direction:column; height:100vh; position:sticky; top:0; flex-shrink:0; }
+.brand { padding:20px 16px; border-bottom:1px solid var(--border); }
+.brand-name { font-size:17px; font-weight:700; color:var(--text); display:flex; align-items:center; gap:8px; }
+.brand-sub { font-size:11px; color:var(--muted); margin-top:3px; font-family:var(--mono); }
+.nav { flex:1; padding:12px 8px; display:flex; flex-direction:column; gap:2px; }
+.nav-btn { background:none; border:none; width:100%; text-align:left; padding:9px 12px; border-radius:8px; color:var(--muted); font-size:13px; font-weight:500; cursor:pointer; display:flex; align-items:center; gap:10px; transition:all .15s; }
+.nav-btn:hover { background:var(--card2); color:var(--text); }
+.nav-btn.active { background:rgba(91,106,240,.15); color:#818cf8; }
+.nav-btn .dot { width:6px; height:6px; border-radius:50%; background:var(--muted); margin-left:auto; flex-shrink:0; }
+.nav-btn .dot.on { background:var(--green); box-shadow:0 0 6px var(--green); animation:blink 2s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.4} }
+.sidebar-foot { padding:12px 16px; border-top:1px solid var(--border); font-family:var(--mono); font-size:10px; color:var(--muted); line-height:1.8; }
+
+/* ── MAIN ── */
+.main { flex:1; min-height:100vh; overflow-y:auto; }
+.topbar { padding:16px 28px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; background:rgba(15,17,23,.95); position:sticky; top:0; z-index:10; backdrop-filter:blur(8px); }
+.topbar-title { font-size:16px; font-weight:700; }
+.topbar-right { display:flex; gap:8px; align-items:center; }
+.badge { display:inline-flex; align-items:center; gap:4px; padding:3px 9px; border-radius:20px; font-size:11px; font-weight:600; font-family:var(--mono); }
+.badge-off { background:rgba(239,68,68,.12); color:var(--red); }
+.badge-on  { background:rgba(34,197,94,.12); color:var(--green); }
+
+/* ── BUTTONS ── */
+.btn { padding:8px 16px; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; border:none; display:inline-flex; align-items:center; gap:6px; transition:all .15s; font-family:'Inter',sans-serif; }
+.btn:disabled { opacity:.4; cursor:not-allowed; }
+.btn-primary { background:var(--accent); color:#fff; }
+.btn-primary:hover:not(:disabled) { background:#4f5de0; }
+.btn-green  { background:rgba(34,197,94,.15);  color:var(--green); border:1px solid rgba(34,197,94,.25); }
+.btn-green:hover:not(:disabled)  { background:rgba(34,197,94,.25); }
+.btn-red    { background:rgba(239,68,68,.12);  color:var(--red);   border:1px solid rgba(239,68,68,.2); }
+.btn-red:hover:not(:disabled)    { background:rgba(239,68,68,.22); }
+.btn-ghost  { background:var(--card2); color:var(--text); border:1px solid var(--border); }
+.btn-ghost:hover:not(:disabled)  { border-color:var(--accent); color:#818cf8; }
+.btn-wa     { background:rgba(37,211,102,.12); color:var(--wa);    border:1px solid rgba(37,211,102,.25); }
+.btn-wa:hover:not(:disabled)     { background:rgba(37,211,102,.22); }
+
+/* ── PAGE & CARDS ── */
+.page { display:none; padding:24px 28px; }
+.page.active { display:block; }
+.card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:20px; margin-bottom:16px; }
+.card-head { font-size:11px; font-weight:700; letter-spacing:.8px; text-transform:uppercase; color:var(--accent); margin-bottom:14px; }
+.grid2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+
+/* ── STAT CARDS ── */
+.stat { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:16px; position:relative; overflow:hidden; }
+.stat::after { content:''; position:absolute; inset-block-start:0; inset-inline:0; height:2px; }
+.stat.blue::after  { background:var(--accent); }
+.stat.green::after { background:var(--green); }
+.stat.wa::after    { background:var(--wa); }
+.stat.yellow::after{ background:var(--yellow); }
+.stat-num { font-size:32px; font-weight:700; line-height:1; margin-bottom:4px; }
+.stat-lbl { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; }
+.stat-ico { position:absolute; right:14px; top:12px; font-size:24px; opacity:.1; }
+
+/* ── FORM ── */
+.field { margin-bottom:14px; }
+.field label { display:block; font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:5px; }
+.field input, .field select, .field textarea {
+  width:100%; background:var(--card2); border:1px solid var(--border);
+  border-radius:8px; padding:9px 12px; color:var(--text);
+  font-family:var(--mono); font-size:12px; outline:none; transition:border-color .15s;
+}
+.field input:focus, .field select:focus, .field textarea:focus { border-color:var(--accent); }
+.field textarea { resize:vertical; min-height:90px; line-height:1.6; }
+.field select option { background:var(--card2); }
+.hint { font-size:11px; color:var(--muted); margin-top:4px; line-height:1.5; }
+
+/* ── TOGGLE ── */
+.row { display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border); }
+.row:last-child { border-bottom:none; }
+.row-label { font-size:13px; font-weight:500; }
+.row-sub { font-size:11px; color:var(--muted); margin-top:2px; }
+.switch { position:relative; width:40px; height:22px; flex-shrink:0; }
+.switch input { opacity:0; width:0; height:0; }
+.slider { position:absolute; inset:0; background:var(--border); border-radius:11px; cursor:pointer; transition:.2s; }
+.slider::before { content:''; position:absolute; left:3px; top:3px; width:16px; height:16px; border-radius:50%; background:#fff; transition:.2s; }
+input:checked+.slider { background:var(--accent); }
+input:checked+.slider::before { transform:translateX(18px); }
+
+/* ── RULES LIST ── */
+.rule-item { background:var(--card2); border:1px solid var(--border); border-radius:8px; padding:12px 14px; display:flex; align-items:center; gap:12px; transition:border-color .15s; }
+.rule-item:hover { border-color:var(--accent); }
+.rule-item+.rule-item { margin-top:8px; }
+.rtoggle { width:32px; height:18px; border:none; border-radius:9px; background:var(--border); position:relative; cursor:pointer; flex-shrink:0; transition:.2s; }
+.rtoggle::after { content:''; position:absolute; left:2px; top:2px; width:14px; height:14px; border-radius:50%; background:#fff; transition:.2s; }
+.rtoggle.on { background:var(--accent); }
+.rtoggle.on::after { left:16px; }
+.rule-info { flex:1; min-width:0; }
+.rule-name { font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.rule-sub  { font-size:11px; color:var(--muted); margin-top:2px; font-family:var(--mono); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.chip { display:inline-block; padding:2px 7px; border-radius:4px; font-size:10px; font-weight:600; font-family:var(--mono); text-transform:uppercase; }
+.chip-blue { background:rgba(91,106,240,.15); color:#818cf8; }
+.chip-wa   { background:rgba(37,211,102,.15);  color:var(--wa); }
+.chip-off  { background:rgba(107,114,128,.12); color:var(--muted); }
+.rule-chips { display:flex; gap:5px; flex-shrink:0; }
+.icon-btn { width:28px; height:28px; border-radius:6px; border:1px solid var(--border); background:none; cursor:pointer; font-size:13px; color:var(--muted); display:flex; align-items:center; justify-content:center; transition:all .15s; }
+.icon-btn:hover        { border-color:var(--accent); color:#818cf8; }
+.icon-btn.del:hover    { border-color:var(--red); color:var(--red); }
+
+/* ── LOG ── */
+.logbox { background:#080a10; border:1px solid var(--border); border-radius:8px; padding:14px; font-family:var(--mono); font-size:12px; overflow-y:auto; line-height:1.8; }
+.log-row { display:flex; gap:10px; }
+.log-t { color:var(--muted); flex-shrink:0; }
+.log-m { }
+.log-m.info    { color:#60a5fa; }
+.log-m.success { color:var(--green); }
+.log-m.error   { color:var(--red); }
+.log-m.warn    { color:var(--yellow); }
+.log-m.wa      { color:var(--wa); }
+.log-m.warning { color:var(--yellow); }
+
+/* ── TAGS INPUT ── */
+.tagbox { display:flex; flex-wrap:wrap; gap:5px; padding:7px; background:var(--card2); border:1px solid var(--border); border-radius:8px; min-height:40px; cursor:text; transition:border-color .15s; }
+.tagbox:focus-within { border-color:var(--accent); }
+.tag { background:rgba(91,106,240,.15); color:#818cf8; border-radius:4px; padding:2px 8px; font-size:11px; font-family:var(--mono); display:flex; align-items:center; gap:3px; }
+.tag button { background:none; border:none; color:#818cf8; cursor:pointer; font-size:14px; line-height:1; padding:0; }
+.taginput { border:none; background:none; outline:none; color:var(--text); font-family:var(--mono); font-size:12px; flex:1; min-width:80px; }
+
+/* ── MODAL ── */
+.overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:100; align-items:center; justify-content:center; backdrop-filter:blur(4px); }
+.overlay.open { display:flex; }
+.modal { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:24px; width:520px; max-width:95vw; max-height:90vh; overflow-y:auto; }
+.modal-head { font-size:16px; font-weight:700; margin-bottom:18px; display:flex; align-items:center; justify-content:space-between; }
+.modal-close { background:none; border:none; font-size:20px; cursor:pointer; color:var(--muted); line-height:1; }
+.modal-close:hover { color:var(--red); }
+.modal-foot { display:flex; gap:8px; justify-content:flex-end; margin-top:16px; padding-top:16px; border-top:1px solid var(--border); }
+
+/* ── TOASTS ── */
+#toasts { position:fixed; bottom:20px; right:20px; z-index:200; display:flex; flex-direction:column; gap:6px; }
+.toast { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:10px 14px; font-size:12px; font-family:var(--mono); display:flex; align-items:center; gap:7px; min-width:230px; animation:tin .3s ease, tout .3s ease 3.8s forwards; }
+.toast.success { border-left:3px solid var(--green); }
+.toast.error   { border-left:3px solid var(--red); }
+.toast.info    { border-left:3px solid var(--accent); }
+.toast.wa      { border-left:3px solid var(--wa); }
+.toast.warn    { border-left:3px solid var(--yellow); }
+@keyframes tin  { from{transform:translateX(120%);opacity:0} to{transform:none;opacity:1} }
+@keyframes tout { to{transform:translateX(120%);opacity:0} }
+
+/* ── WA PREVIEW ── */
+.wa-prev { background:#0d1f14; border:1px solid rgba(37,211,102,.2); border-radius:10px; padding:14px; font-family:var(--mono); font-size:12px; color:#c5f0d0; line-height:1.8; }
+.wa-prev-label { font-size:10px; color:var(--wa); text-transform:uppercase; letter-spacing:1px; font-weight:700; margin-bottom:8px; display:block; }
+
+/* ── INFO BOX ── */
+.info { background:rgba(91,106,240,.07); border:1px solid rgba(91,106,240,.18); border-radius:8px; padding:12px 14px; font-size:12px; color:var(--muted); line-height:1.6; margin-bottom:14px; }
+.info strong { color:#818cf8; }
+.hr { border:none; border-top:1px solid var(--border); margin:14px 0; }
+.empty { text-align:center; padding:32px; color:var(--muted); font-family:var(--mono); font-size:12px; }
+.spin { display:inline-block; width:12px; height:12px; border:2px solid rgba(255,255,255,.25); border-top-color:currentColor; border-radius:50%; animation:sp .6s linear infinite; }
+@keyframes sp { to{transform:rotate(360deg)} }
+::-webkit-scrollbar { width:5px; } ::-webkit-scrollbar-track { background:transparent; } ::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="brand">
+    <div class="brand-name">⚡ MailGuard</div>
+    <div class="brand-sub">Label Automation</div>
+  </div>
+  <div class="nav">
+    <button class="nav-btn active" data-page="dashboard">
+      📊 Dashboard <span class="dot" id="eng-dot"></span>
+    </button>
+    <button class="nav-btn" data-page="rules">⚙️ Label Rules</button>
+    <button class="nav-btn" data-page="whatsapp">📲 WhatsApp</button>
+    <button class="nav-btn" data-page="credentials">🔐 Credentials</button>
+    <button class="nav-btn" data-page="logs">📋 Logs</button>
+    <button class="nav-btn" data-page="settings">🛠️ Settings</button>
+  </div>
+  <div class="sidebar-foot">
+    STATUS: <span id="eng-txt" style="color:var(--muted)">STOPPED</span><br>
+    LAST CHECK: <span id="last-chk">—</span>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title" id="page-title">Dashboard</div>
+    <div class="topbar-right">
+      <span class="badge badge-off" id="eng-badge">● OFF</span>
+      <button class="btn btn-green" id="eng-btn" onclick="toggleEngine()">▶ Start</button>
+      <button class="btn btn-ghost" onclick="checkNow()">🔄 Check Now</button>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="page active" id="pg-dashboard">
+    <div class="grid3" style="margin-bottom:16px">
+      <div class="stat blue"><div class="stat-ico">📧</div><div class="stat-num" id="s-emails">0</div><div class="stat-lbl">Emails Checked</div></div>
+      <div class="stat green"><div class="stat-ico">🏷️</div><div class="stat-num" id="s-labels">0</div><div class="stat-lbl">Labels Applied</div></div>
+      <div class="stat wa"><div class="stat-ico">📲</div><div class="stat-num" id="s-wa">0</div><div class="stat-lbl">WhatsApp Sent</div></div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-head">Engine</div>
+        <div class="row"><div><div class="row-label">Status</div></div><span id="eng-pill" class="chip chip-off">Stopped</span></div>
+        <div class="row"><div><div class="row-label">Active Rules</div></div><strong id="d-rules">0</strong></div>
+        <div class="row"><div><div class="row-label">Recipients</div></div><strong id="d-recips" style="color:var(--wa)">0</strong></div>
+        <div class="row"><div><div class="row-label">Errors</div></div><strong id="s-errors" style="color:var(--red)">0</strong></div>
+      </div>
+      <div class="card">
+        <div class="card-head">Setup Checklist</div>
+        <div class="row"><div><div class="row-label">Gmail</div><div class="row-sub" id="chk-email-sub">Not set</div></div><span class="chip chip-off" id="chk-email">✗</span></div>
+        <div class="row"><div><div class="row-label">Twilio SID</div><div class="row-sub" id="chk-sid-sub">Not set</div></div><span class="chip chip-off" id="chk-sid">✗</span></div>
+        <div class="row"><div><div class="row-label">Twilio From</div><div class="row-sub" id="chk-from-sub">Not set</div></div><span class="chip chip-off" id="chk-from">✗</span></div>
+        <div class="row"><div><div class="row-label">Recipients</div><div class="row-sub" id="chk-recip-sub">Not set</div></div><span class="chip chip-off" id="chk-recip">✗</span></div>
+        <button class="btn btn-ghost" style="width:100%;margin-top:10px" onclick="nav('credentials')">→ Go to Credentials</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head">Recent Activity</div>
+      <div class="logbox" id="dash-log" style="height:220px"></div>
+    </div>
+  </div>
+
+  <!-- RULES -->
+  <div class="page" id="pg-rules">
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <span style="font-weight:700">Label Rules</span>
+        <button class="btn btn-primary" onclick="openRule()">+ Add Rule</button>
+      </div>
+      <div class="info">
+        Rules are checked <strong>top to bottom</strong>. First match wins. The Gmail label you enter <strong>must already exist</strong> in your Gmail account (create it there first).
+      </div>
+      <div id="rules-list"><div class="empty">No rules yet. Click + Add Rule.</div></div>
+    </div>
+  </div>
+
+  <!-- WHATSAPP -->
+  <div class="page" id="pg-whatsapp">
+    <div class="grid2">
+      <div class="card">
+        <div class="card-head">Recipients</div>
+        <div class="info">Format: <strong>+CountryCodeNumber</strong> e.g. +911234567890</div>
+        <div class="field">
+          <label>Add Phone Number</label>
+          <div style="display:flex;gap:8px">
+            <input id="new-recip" type="text" placeholder="+911234567890" style="flex:1">
+            <button class="btn btn-wa" onclick="addRecipient()">+ Add</button>
+          </div>
+        </div>
+        <div id="recip-list"></div>
+      </div>
+      <div class="card">
+        <div class="card-head">Message Template</div>
+        <div class="field">
+          <label>Template</label>
+          <textarea id="wa-tmpl" rows="8"></textarea>
+          <div class="hint">Variables: {from} {subject} {label} {time} {preview} {rule_name}</div>
+        </div>
+        <button class="btn btn-ghost" style="width:100%;margin-bottom:12px" onclick="saveTmpl()">💾 Save Template</button>
+        <div class="wa-prev">
+          <span class="wa-prev-label">📱 WhatsApp Preview</span>
+          <div id="wa-preview"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head">Send a Real Test Message</div>
+      <div class="info">This sends a <strong>real WhatsApp message</strong> using your Twilio credentials right now. Use it to confirm everything works before starting the engine.</div>
+      <div class="grid2">
+        <div class="field">
+          <label>Send to</label>
+          <select id="test-to"><option value="">— Select recipient —</option></select>
+        </div>
+        <div class="field">
+          <label>Message</label>
+          <input id="test-msg" value="✅ MailGuard test message — it works!">
+        </div>
+      </div>
+      <button class="btn btn-wa" id="test-btn" onclick="sendTest()">📲 Send Test Now</button>
+      <div id="test-result" style="display:none;margin-top:10px;font-family:var(--mono);font-size:12px;padding:8px 12px;border-radius:6px;"></div>
+    </div>
+  </div>
+
+  <!-- CREDENTIALS -->
+  <div class="page" id="pg-credentials">
+    <div class="grid2">
+      <div class="card">
+        <div class="card-head">📧 Gmail</div>
+        <div class="info">
+          You need an <strong>App Password</strong>, NOT your Gmail password.<br><br>
+          <strong>How to get one:</strong><br>
+          1. Go to myaccount.google.com<br>
+          2. Security → 2-Step Verification (enable it)<br>
+          3. App passwords → Create → Choose "Mail"<br>
+          4. Copy the 16-character password shown
+        </div>
+        <div class="field"><label>Gmail Address</label><input id="c-email" type="email" placeholder="you@gmail.com"></div>
+        <div class="field">
+          <label>App Password</label>
+          <input id="c-pass" type="password" placeholder="16-character app password">
+          <div class="hint">⚠️ Not your regular Gmail password</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-primary" style="flex:1" onclick="saveCreds('gmail')">💾 Save Gmail</button>
+          <button class="btn btn-ghost" onclick="testGmail()" id="gmail-test-btn">🔌 Test</button>
+        </div>
+        <div id="gmail-result" style="display:none;margin-top:10px;font-family:var(--mono);font-size:12px;padding:8px 12px;border-radius:6px;"></div>
+      </div>
+      <div class="card">
+        <div class="card-head">📲 Twilio WhatsApp</div>
+        <div class="info">
+          Get from <strong>console.twilio.com</strong><br><br>
+          <strong>Sandbox setup:</strong><br>
+          1. Messaging → Try it out → Send a WhatsApp message<br>
+          2. Note your sandbox number (+14155238886)<br>
+          3. Each recipient must send the "join &lt;word&gt;" message to +14155238886 on WhatsApp first<br>
+          4. Then enter that number below as From
+        </div>
+        <div class="field"><label>Account SID</label><input id="c-sid" placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"></div>
+        <div class="field">
+          <label>Auth Token</label>
+          <input id="c-token" type="password" placeholder="Your auth token">
+        </div>
+        <div class="field">
+          <label>From Number</label>
+          <input id="c-from" placeholder="+14155238886">
+          <div class="hint">Sandbox: +14155238886 &nbsp;|&nbsp; Production: your Twilio number</div>
+        </div>
+        <button class="btn btn-primary" style="width:100%" onclick="saveCreds('twilio')">💾 Save Twilio</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOGS -->
+  <div class="page" id="pg-logs">
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <span style="font-weight:700">Activity Log</span>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost" style="font-size:11px;padding:6px 10px" onclick="pollNow()">🔄 Refresh</button>
+          <button class="btn btn-red"   style="font-size:11px;padding:6px 10px" onclick="clearLogs()">🗑️ Clear</button>
+        </div>
+      </div>
+      <div class="logbox" id="full-log" style="height:520px"></div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="page" id="pg-settings">
+    <div class="grid2">
+      <div class="card">
+        <div class="card-head">Engine</div>
+        <div class="field">
+          <label>Check Interval</label>
+          <select id="s-interval">
+            <option value="30">30 seconds (testing)</option>
+            <option value="60">1 minute</option>
+            <option value="300" selected>5 minutes</option>
+            <option value="600">10 minutes</option>
+            <option value="1800">30 minutes</option>
+          </select>
+        </div>
+        <div class="field"><label>Max Emails Per Check</label><input id="s-maxemails" type="number" value="50" min="1" max="200"></div>
+        <div class="row">
+          <div><div class="row-label">Only Unread</div><div class="row-sub">Skip already-read emails</div></div>
+          <label class="switch"><input type="checkbox" id="s-unread" checked><span class="slider"></span></label>
+        </div>
+        <div class="row">
+          <div><div class="row-label">Mark Read After Label</div></div>
+          <label class="switch"><input type="checkbox" id="s-markread"><span class="slider"></span></label>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head">Notifications</div>
+        <div class="field">
+          <label>WA Alert Cooldown (per rule)</label>
+          <select id="s-cooldown">
+            <option value="0">No cooldown — always send</option>
+            <option value="60">1 minute</option>
+            <option value="300">5 minutes</option>
+            <option value="600" selected>10 minutes</option>
+            <option value="3600">1 hour</option>
+          </select>
+          <div class="hint">Minimum wait between alerts for the same rule</div>
+        </div>
+        <div class="field"><label>Active From (time)</label><input id="s-from" type="time" value="00:00"></div>
+        <div class="field"><label>Active Until (time)</label><input id="s-to"   type="time" value="23:59"></div>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="saveSettings()">💾 Save Settings</button>
+  </div>
+</div>
+
+<!-- RULE MODAL -->
+<div class="overlay" id="rule-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <span id="modal-title">Add Rule</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <input type="hidden" id="edit-idx">
+    <div class="field"><label>Rule Name *</label><input id="r-name" placeholder="e.g. Boss Emails"></div>
+    <div class="grid2">
+      <div class="field"><label>Gmail Label to Apply *</label><input id="r-label" placeholder="e.g. URGENT"><div class="hint">Must already exist in Gmail</div></div>
+      <div class="field"><label>Priority</label><select id="r-priority"><option value="normal">Normal</option><option value="high">High</option><option value="critical">Critical</option></select></div>
+    </div>
+    <hr class="hr">
+    <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:10px">Conditions — leave empty to match ALL emails</div>
+    <div class="field">
+      <label>From / Sender contains any of</label>
+      <div class="tagbox" id="tb-from" onclick="document.getElementById('ti-from').focus()">
+        <input class="taginput" id="ti-from" placeholder="e.g. boss@company.com  (press Enter to add)">
+      </div>
+    </div>
+    <div class="field">
+      <label>Subject contains any of</label>
+      <div class="tagbox" id="tb-subject" onclick="document.getElementById('ti-subject').focus()">
+        <input class="taginput" id="ti-subject" placeholder="e.g. invoice  (press Enter to add)">
+      </div>
+    </div>
+    <div class="field">
+      <label>Body contains any of</label>
+      <div class="tagbox" id="tb-body" onclick="document.getElementById('ti-body').focus()">
+        <input class="taginput" id="ti-body" placeholder="keyword  (press Enter to add)">
+      </div>
+    </div>
+    <hr class="hr">
+    <div class="row" style="border:none;padding:0;margin-bottom:12px">
+      <div><div class="row-label">Send WhatsApp alert when matched</div></div>
+      <label class="switch"><input type="checkbox" id="r-wa" checked onchange="document.getElementById('r-custom-wrap').style.display=this.checked?'block':'none'"><span class="slider"></span></label>
+    </div>
+    <div id="r-custom-wrap">
+      <div class="field">
+        <label>Custom WA Message (optional)</label>
+        <textarea id="r-wa-msg" placeholder="Leave blank to use the global template from WhatsApp tab"></textarea>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveRule()">💾 Save Rule</button>
+    </div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<script>
+// ── STATE ────────────────────────────────────────────────────────────────────
+let CFG = {};
+let tags = { from:[], subject:[], body:[] };
+let pollId = null;
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+async function init() {
+  await fetchCfg();
+  renderAll();
+  setupTags();
+  startPoll();
+}
+
+async function fetchCfg() {
+  try {
+    const r = await fetch("/api/config");
+    CFG = await r.json();
+  } catch(e) {
+    toast("Cannot reach server — is app.py running?", "error");
+  }
+}
+
+async function post(url, body={}) {
+  const r = await fetch(url, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body) });
+  return r.json();
+}
+
+// ── POLLING ───────────────────────────────────────────────────────────────────
+function startPoll() { pollId = setInterval(pollNow, 3000); pollNow(); }
+
+async function pollNow() {
+  try {
+    const s = await (await fetch("/api/status")).json();
+    updateEngineUI(s.running);
+    document.getElementById("last-chk").textContent  = s.last_check  || "—";
+    document.getElementById("s-emails").textContent  = s.emails_checked;
+    document.getElementById("s-labels").textContent  = s.labels_applied;
+    document.getElementById("s-wa").textContent      = s.wa_sent;
+    document.getElementById("s-errors").textContent  = s.errors;
+    renderLogBox(s.logs, "dash-log", 50);
+    if (document.getElementById("pg-logs").classList.contains("active")) {
+      renderLogBox(s.logs, "full-log", 600);
+    }
+  } catch(e) {}
+}
+
+// ── ENGINE UI ─────────────────────────────────────────────────────────────────
+function updateEngineUI(on) {
+  const btn  = document.getElementById("eng-btn");
+  const dot  = document.getElementById("eng-dot");
+  const badge= document.getElementById("eng-badge");
+  const pill = document.getElementById("eng-pill");
+  const txt  = document.getElementById("eng-txt");
+  if (on) {
+    btn.textContent = "■ Stop"; btn.className = "btn btn-red";
+    dot.className = "dot on";
+    badge.textContent = "● ON"; badge.className = "badge badge-on";
+    pill.textContent = "Running"; pill.className = "chip chip-blue";
+    txt.textContent = "RUNNING"; txt.style.color = "var(--green)";
+  } else {
+    btn.textContent = "▶ Start"; btn.className = "btn btn-green";
+    dot.className = "dot";
+    badge.textContent = "● OFF"; badge.className = "badge badge-off";
+    pill.textContent = "Stopped"; pill.className = "chip chip-off";
+    txt.textContent = "STOPPED"; txt.style.color = "var(--muted)";
+  }
+}
+
+async function toggleEngine() {
+  const on = document.getElementById("eng-btn").textContent.includes("Stop");
+  const btn = document.getElementById("eng-btn");
+  btn.disabled = true;
+  try {
+    const d = await post(on ? "/api/engine/stop" : "/api/engine/start");
+    if (!d.ok) { toast("❌ " + d.error, "error"); }
+    else { toast(on ? "■ Engine stopped" : "▶ Engine started!", on?"warn":"success"); }
+  } catch(e) { toast("Server error","error"); }
+  btn.disabled = false;
+  setTimeout(pollNow, 300);
+}
+
+async function checkNow() {
+  toast("🔍 Running check now...", "info");
+  await post("/api/engine/check_now");
+  setTimeout(pollNow, 2000);
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function renderAll() {
+  renderRules();
+  renderRecipients();
+  populateTestSelect();
+  renderChecklist();
+  loadFormValues();
+  updateWAPreview();
+}
+
+function loadFormValues() {
+  const c = CFG;
+  setVal("c-email", c.gmail_address || "");
+  setVal("c-pass",  "");   // never prefill passwords
+  setVal("c-sid",   c.twilio_sid  || "");
+  setVal("c-token", "");
+  setVal("c-from",  c.twilio_from || "");
+  setVal("wa-tmpl", c.wa_template || "");
+  setVal("s-interval",  c.check_interval || 300);
+  setVal("s-maxemails", 50);
+  setVal("s-from", "00:00"); setVal("s-to","23:59");
+  chk("s-unread", c.only_unread !== false);
+  chk("s-markread", !!c.mark_read);
+
+  document.getElementById("d-rules").textContent  = (c.rules||[]).filter(r=>r.enabled).length;
+  document.getElementById("d-recips").textContent = (c.recipients||[]).length;
+}
+
+function renderChecklist() {
+  const c = CFG;
+  const set = (id, ok, sub) => {
+    const el = document.getElementById("chk-"+id);
+    const sb = document.getElementById("chk-"+id+"-sub");
+    if (el) { el.textContent = ok?"✓":"✗"; el.className = ok?"chip chip-blue":"chip chip-off"; }
+    if (sb) sb.textContent = ok ? sub : "Not set";
+  };
+  set("email", !!c.gmail_address, c.gmail_address||"");
+  set("sid",   !!c.twilio_sid,    (c.twilio_sid||"").slice(0,10)+"...");
+  set("from",  !!c.twilio_from,   c.twilio_from||"");
+  set("recip", (c.recipients||[]).length > 0, `${(c.recipients||[]).length} number(s)`);
+}
+
+// ── CREDENTIALS ───────────────────────────────────────────────────────────────
+async function saveCreds(type) {
+  const patch = {};
+  if (type === "gmail") {
+    patch.gmail_address = val("c-email").trim();
+    const pw = val("c-pass");
+    if (pw) patch.gmail_password = pw;
+  } else {
+    patch.twilio_sid  = val("c-sid").trim();
+    patch.twilio_from = val("c-from").trim();
+    const tok = val("c-token");
+    if (tok) patch.twilio_token = tok;
+  }
+  const d = await post("/api/config", patch);
+  if (d.ok) {
+    await fetchCfg();
+    renderChecklist();
+    loadFormValues();
+    toast(type === "gmail" ? "📧 Gmail saved ✓" : "📲 Twilio saved ✓", "success");
+  }
+}
+
+async function testGmail() {
+  const btn = document.getElementById("gmail-test-btn");
+  const res = document.getElementById("gmail-result");
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Testing...';
+  res.style.display = "block";
+  res.style.background = "rgba(107,114,128,.1)";
+  res.textContent = "Connecting to Gmail...";
+  try {
+    const d = await post("/api/test/gmail");
+    if (d.ok) {
+      res.style.background = "rgba(34,197,94,.08)";
+      res.style.color = "var(--green)";
+      res.textContent = `✅ Connected! ${d.unread} unread email(s) in inbox.`;
+      toast("✅ Gmail connected!", "success");
+    } else {
+      res.style.background = "rgba(239,68,68,.08)";
+      res.style.color = "var(--red)";
+      res.textContent = "❌ " + d.error;
+      toast("Gmail test failed", "error");
+    }
+  } catch(e) { res.textContent = "❌ Cannot reach server"; }
+  btn.disabled = false; btn.textContent = "🔌 Test";
+}
+
+// ── WHATSAPP TEST ─────────────────────────────────────────────────────────────
+async function sendTest() {
+  const to  = val("test-to");
+  const msg = val("test-msg").trim();
+  const res = document.getElementById("test-result");
+  const btn = document.getElementById("test-btn");
+  if (!to)  { toast("Select a recipient","error"); return; }
+  if (!msg) { toast("Enter a message","error"); return; }
+
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Sending via Twilio...';
+  res.style.display = "block"; res.style.background = "rgba(107,114,128,.1)"; res.style.color = "var(--muted)"; res.textContent = "Calling Twilio API...";
+
+  try {
+    const d = await post("/api/test/whatsapp", { to, message: msg });
+    if (d.ok) {
+      res.style.background = "rgba(37,211,102,.08)"; res.style.color = "var(--wa)";
+      res.textContent = `✅ WhatsApp sent! Twilio SID: ${d.sid}`;
+      toast("📲 WhatsApp sent successfully!", "wa");
+    } else {
+      res.style.background = "rgba(239,68,68,.08)"; res.style.color = "var(--red)";
+      res.textContent = "❌ " + d.error;
+      toast("WhatsApp failed: " + d.error, "error");
+    }
+  } catch(e) {
+    res.style.color = "var(--red)"; res.textContent = "❌ Server error";
+  }
+  btn.disabled = false; btn.innerHTML = "📲 Send Test Now";
+}
+
+// ── RECIPIENTS ────────────────────────────────────────────────────────────────
+async function addRecipient() {
+  const v = val("new-recip").trim();
+  if (!v) return;
+  if (!/^\+\d{7,15}$/.test(v)) { toast("Format must be +CountryCode+Number e.g. +911234567890", "error"); return; }
+  if ((CFG.recipients||[]).includes(v)) { toast("Already in the list","warn"); return; }
+  CFG.recipients = [...(CFG.recipients||[]), v];
+  await post("/api/config", { recipients: CFG.recipients });
+  setVal("new-recip","");
+  renderRecipients(); populateTestSelect(); renderChecklist();
+  document.getElementById("d-recips").textContent = CFG.recipients.length;
+  toast("Recipient added ✓","success");
+}
+
+async function removeRecipient(i) {
+  CFG.recipients.splice(i, 1);
+  await post("/api/config", { recipients: CFG.recipients });
+  renderRecipients(); populateTestSelect(); renderChecklist();
+}
+
+function renderRecipients() {
+  const el = document.getElementById("recip-list");
+  if (!(CFG.recipients||[]).length) { el.innerHTML = '<div class="empty" style="padding:14px">No recipients added</div>'; return; }
+  el.innerHTML = CFG.recipients.map((n,i) => `
+    <div class="rule-item">
+      <span style="font-size:18px">📲</span>
+      <div class="rule-info"><div class="rule-name">${esc(n)}</div><div class="rule-sub">WhatsApp recipient</div></div>
+      <button class="icon-btn del" onclick="removeRecipient(${i})">🗑️</button>
+    </div>`).join("");
+}
+
+function populateTestSelect() {
+  const s = document.getElementById("test-to");
+  s.innerHTML = '<option value="">— Select recipient —</option>' +
+    (CFG.recipients||[]).map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
+}
+
+// ── TEMPLATE ─────────────────────────────────────────────────────────────────
+async function saveTmpl() {
+  CFG.wa_template = val("wa-tmpl");
+  await post("/api/config", { wa_template: CFG.wa_template });
+  updateWAPreview();
+  toast("Template saved ✓","success");
+}
+
+function updateWAPreview() {
+  const t = val("wa-tmpl") || "";
+  const p = t.replace(/{from}/g,"boss@company.com").replace(/{subject}/g,"Q4 Report Due")
+             .replace(/{label}/g,"URGENT").replace(/{time}/g,new Date().toLocaleTimeString())
+             .replace(/{preview}/g,"Please review the document before the deadline...")
+             .replace(/{rule_name}/g,"Boss Emails");
+  document.getElementById("wa-preview").innerHTML = esc(p).replace(/\n/g,"<br>");
+}
+document.getElementById("wa-tmpl").addEventListener("input", updateWAPreview);
+
+// ── RULES ─────────────────────────────────────────────────────────────────────
+function renderRules() {
+  const el = document.getElementById("rules-list");
+  const rules = CFG.rules || [];
+  document.getElementById("d-rules").textContent = rules.filter(r=>r.enabled).length;
+  if (!rules.length) { el.innerHTML = '<div class="empty">No rules. Click + Add Rule.</div>'; return; }
+  el.innerHTML = rules.map((r,i) => `
+    <div class="rule-item">
+      <button class="rtoggle ${r.enabled?"on":""}" onclick="toggleRule(${i})"></button>
+      <div class="rule-info">
+        <div class="rule-name">${esc(r.name)}</div>
+        <div class="rule-sub">${ruleDesc(r)}</div>
+      </div>
+      <div class="rule-chips">
+        <span class="chip chip-blue">${esc(r.label)}</span>
+        ${r.send_wa?'<span class="chip chip-wa">📲 WA</span>':""}
+        ${!r.enabled?'<span class="chip chip-off">OFF</span>':""}
+      </div>
+      <div style="display:flex;gap:5px">
+        <button class="icon-btn" onclick="editRule(${i})">✏️</button>
+        <button class="icon-btn del" onclick="delRule(${i})">🗑️</button>
+      </div>
+    </div>`).join("");
+}
+
+function ruleDesc(r) {
+  const parts = [];
+  if (r.from_keywords?.length)    parts.push("From: " + r.from_keywords.slice(0,2).join(", "));
+  if (r.subject_keywords?.length) parts.push("Subj: " + r.subject_keywords.slice(0,2).join(", "));
+  if (r.body_keywords?.length)    parts.push("Body: " + r.body_keywords.slice(0,1).join(", "));
+  return parts.length ? parts.join(" · ") : "Matches all emails";
+}
+
+async function toggleRule(i) {
+  CFG.rules[i].enabled = !CFG.rules[i].enabled;
+  await post("/api/config", { rules: CFG.rules });
+  renderRules();
+}
+
+async function delRule(i) {
+  if (!confirm("Delete this rule?")) return;
+  CFG.rules.splice(i,1);
+  await post("/api/config", { rules: CFG.rules });
+  renderRules(); toast("Rule deleted","info");
+}
+
+function openRule() {
+  tags = {from:[],subject:[],body:[]};
+  setVal("r-name",""); setVal("r-label",""); setVal("r-priority","normal");
+  chk("r-wa", true); setVal("r-wa-msg","");
+  document.getElementById("r-custom-wrap").style.display = "block";
+  document.getElementById("modal-title").textContent = "Add Rule";
+  setVal("edit-idx","");
+  renderTags("from"); renderTags("subject"); renderTags("body");
+  document.getElementById("rule-modal").classList.add("open");
+}
+
+function editRule(i) {
+  const r = CFG.rules[i];
+  tags = {
+    from: [...(r.from_keywords||[])],
+    subject: [...(r.subject_keywords||[])],
+    body: [...(r.body_keywords||[])]
+  };
+  setVal("r-name", r.name); setVal("r-label", r.label);
+  setVal("r-priority", r.priority||"normal");
+  chk("r-wa", r.send_wa !== false);
+  setVal("r-wa-msg", r.wa_custom_msg||"");
+  document.getElementById("r-custom-wrap").style.display = r.send_wa !== false ? "block":"none";
+  document.getElementById("modal-title").textContent = "Edit Rule";
+  setVal("edit-idx", String(i));
+  renderTags("from"); renderTags("subject"); renderTags("body");
+  document.getElementById("rule-modal").classList.add("open");
+}
+
+async function saveRule() {
+  const name  = val("r-name").trim();
+  const label = val("r-label").trim();
+  if (!name)  { toast("Rule name required","error"); return; }
+  if (!label) { toast("Label required","error"); return; }
+
+  const rule = {
+    id: uid(), name, label,
+    priority: val("r-priority"),
+    from_keywords:    [...tags.from],
+    subject_keywords: [...tags.subject],
+    body_keywords:    [...tags.body],
+    send_wa:          chkVal("r-wa"),
+    wa_custom_msg:    val("r-wa-msg").trim(),
+    cooldown_sec:     0,
+    enabled: true
+  };
+
+  const idx = val("edit-idx");
+  if (idx !== "") {
+    rule.id = CFG.rules[parseInt(idx)].id;
+    CFG.rules[parseInt(idx)] = rule;
+    toast("Rule updated","success");
+  } else {
+    if (!CFG.rules) CFG.rules = [];
+    CFG.rules.push(rule);
+    toast("Rule added","success");
+  }
+
+  await post("/api/config", { rules: CFG.rules });
+  closeModal(); renderRules();
+}
+
+function closeModal() { document.getElementById("rule-modal").classList.remove("open"); }
+
+// ── TAGS ─────────────────────────────────────────────────────────────────────
+function setupTags() {
+  ["from","subject","body"].forEach(k => {
+    const inp = document.getElementById("ti-"+k);
+    inp.addEventListener("keydown", e => {
+      if (e.key === "Enter" && inp.value.trim()) {
+        if (!tags[k].includes(inp.value.trim())) { tags[k].push(inp.value.trim()); renderTags(k); }
+        inp.value = ""; e.preventDefault();
+      } else if (e.key === "Backspace" && !inp.value && tags[k].length) {
+        tags[k].pop(); renderTags(k);
+      }
+    });
+  });
+}
+
+function renderTags(k) {
+  const box = document.getElementById("tb-"+k);
+  const inp = document.getElementById("ti-"+k);
+  box.innerHTML = "";
+  tags[k].forEach((t,i) => {
+    const chip = document.createElement("span");
+    chip.className = "tag";
+    chip.innerHTML = `${esc(t)} <button onclick="tags['${k}'].splice(${i},1);renderTags('${k}')">×</button>`;
+    box.appendChild(chip);
+  });
+  box.appendChild(inp);
+}
+
+// ── SETTINGS ─────────────────────────────────────────────────────────────────
+async function saveSettings() {
+  const patch = {
+    check_interval: parseInt(val("s-interval")),
+    only_unread:    chkVal("s-unread"),
+    mark_read:      chkVal("s-markread"),
+  };
+  await post("/api/config", patch);
+  toast("Settings saved ✓","success");
+}
+
+// ── LOGS ─────────────────────────────────────────────────────────────────────
+function renderLogBox(logs, id, max) {
+  const box = document.getElementById(id);
+  if (!box) return;
+  const entries = (logs||[]).slice(-max);
+  if (!entries.length) { box.innerHTML = '<div class="log-row"><span class="log-m">No activity yet.</span></div>'; return; }
+  const atBottom = box.scrollHeight - box.clientHeight <= box.scrollTop + 40;
+  box.innerHTML = entries.map(e =>
+    `<div class="log-row"><span class="log-t">${esc(e.time)}</span><span class="log-m ${esc(e.level)}">${esc(e.msg)}</span></div>`
+  ).join("");
+  if (atBottom) box.scrollTop = box.scrollHeight;
+}
+
+async function clearLogs() {
+  await post("/api/logs/clear");
+  toast("Logs cleared","info");
+  pollNow();
+}
+
+// ── NAV ───────────────────────────────────────────────────────────────────────
+const TITLES = {dashboard:"Dashboard",rules:"Label Rules",whatsapp:"WhatsApp Notifications",credentials:"Credentials",logs:"Activity Log",settings:"Settings"};
+
+function nav(page) {
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+  document.getElementById("pg-"+page).classList.add("active");
+  document.querySelector(`[data-page="${page}"]`).classList.add("active");
+  document.getElementById("page-title").textContent = TITLES[page] || page;
+  if (page === "whatsapp") { renderRecipients(); populateTestSelect(); }
+  if (page === "logs") pollNow();
+}
+
+document.querySelectorAll(".nav-btn[data-page]").forEach(btn => {
+  btn.addEventListener("click", () => nav(btn.dataset.page));
+});
+
+document.getElementById("rule-modal").addEventListener("click", e => {
+  if (e.target === document.getElementById("rule-modal")) closeModal();
+});
+
+// ── TOAST ─────────────────────────────────────────────────────────────────────
+function toast(msg, type="info") {
+  const icons = {success:"✅",error:"❌",info:"ℹ️",warn:"⚠️",wa:"📲"};
+  const el = document.createElement("div");
+  el.className = `toast ${type}`;
+  el.innerHTML = `${icons[type]||"ℹ️"} ${esc(msg)}`;
+  document.getElementById("toasts").appendChild(el);
+  setTimeout(() => el.remove(), 4300);
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────────────────
+const val    = id => document.getElementById(id)?.value ?? "";
+const setVal = (id,v)=> { const e=document.getElementById(id); if(e) e.value=v; };
+const chk    = (id,v)=> { const e=document.getElementById(id); if(e) e.checked=v; };
+const chkVal = id => !!document.getElementById(id)?.checked;
+const uid    = () => Math.random().toString(36).slice(2,10);
+const esc    = s => String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+
+init();
+</script>
+</body>
+</html>
